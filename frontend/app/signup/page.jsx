@@ -1,4 +1,5 @@
 'use client';
+export const dynamic = 'force-dynamic';
 import { useState, useRef } from 'react';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { auth } from '@/services/firebase';
