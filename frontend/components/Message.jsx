@@ -201,9 +201,23 @@ export default function Message({ message, senderChanged }) {
 
   if (message.deleted) {
     return (
-      <div className={`flex mb-1 ${isMine ? 'justify-end' : 'justify-start'}`}>
-        <div className="px-3.5 py-2 rounded-2xl text-xs text-gray-500 italic border border-[#2a2a45]/50 bg-[#111128]">
-          🚫 This message was deleted
+      <div className={`flex mb-1 ${isMine ? 'justify-end' : 'justify-start'} group relative`}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}>
+        <div className="relative">
+          <div className="px-3.5 py-2 rounded-2xl text-xs text-gray-500 italic border border-[#2a2a45]/50 bg-[#111128]">
+            🚫 This message was deleted
+          </div>
+          {hovered && (
+            <div className={`absolute -top-8 fade-in z-30
+              bg-[#1e1e3a] border border-[#2a2a45] rounded-full px-2 py-1 shadow-xl
+              ${isMine ? 'right-0' : 'left-0'}`}>
+              <button onClick={() => deleteForMe(message.id)}
+                className="text-xs text-red-400 hover:text-red-300 whitespace-nowrap px-1">
+                Delete for me
+              </button>
+            </div>
+          )}
         </div>
       </div>
     );
