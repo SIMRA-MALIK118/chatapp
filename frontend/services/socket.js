@@ -6,11 +6,17 @@ let socket = null;
 export const connectSocket = (token) => {
   if (socket?.connected) return socket;
 
+  if (socket) {
+    socket.disconnect();
+    socket = null;
+  }
+
   socket = io(process.env.NEXT_PUBLIC_SOCKET_URL, {
     auth: { token },
     transports: ['websocket', 'polling'],
     reconnectionAttempts: 10,
-    reconnectionDelay: 1000,
+    reconnectionDelay: 2000,
+    timeout: 10000,
   });
 
   // Refresh token on reconnect (Firebase tokens expire after 1 hour)
