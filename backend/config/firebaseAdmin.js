@@ -1,17 +1,15 @@
 import { initializeApp, cert, getApps } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getAuth } from 'firebase-admin/auth';
-import { createRequire } from 'module';
-
-const require = createRequire(import.meta.url);
-
-// Load service account key JSON file directly
-const serviceAccount = require('../serviceAccountKey.json');
 
 if (!getApps().length) {
   initializeApp({
-    credential: cert(serviceAccount),
-    databaseURL: 'https://real-time-chat-281b4-default-rtdb.firebaseio.com',
+    credential: cert({
+      projectId: process.env.FIREBASE_PROJECT_ID,
+      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+      privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+    }),
+    databaseURL: `https://${process.env.FIREBASE_PROJECT_ID}-default-rtdb.firebaseio.com`,
   });
 }
 
