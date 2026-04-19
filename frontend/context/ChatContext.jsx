@@ -58,8 +58,7 @@ export const ChatProvider = ({ children }) => {
 
   // ─── Socket listeners ───────────────────────────────────────────────────────
   useEffect(() => {
-    const socket = getSocket();
-    if (!socket) return;
+    if (!user) return;
 
     const handleNewMessage = (msg) => {
       const activePeer = selectedUserRef.current;
@@ -71,8 +70,9 @@ export const ChatProvider = ({ children }) => {
           if (prev.some((m) => m.id === msg.id)) return prev;
           return [...prev, msg];
         });
+        const s = getSocket();
         if (msg.senderId === activePeer?.uid) {
-          socket.emit('messageSeen', { messageId: msg.id, senderId: msg.senderId });
+          s?.emit('messageSeen', { messageId: msg.id, senderId: msg.senderId });
         }
       } else if (msg.senderId !== user?.uid) {
         setUnreadCounts((prev) => ({
@@ -96,7 +96,7 @@ export const ChatProvider = ({ children }) => {
         messageIds.includes(m.id) ? { ...m, status } : m
       ));
     };
-    const handleMessageDeleted = ({ messageId, scope }) => {
+    const handleMessageDeleted = ({ messageId }) => {
       setMessages((prev) => prev.map((m) =>
         m.id === messageId ? { ...m, deleted: true, text: '', imageUrl: '' } : m
       ));
@@ -112,24 +112,49 @@ export const ChatProvider = ({ children }) => {
       setMessages((prev) => prev.map((m) => m.id === messageId ? { ...m, reactions } : m));
     };
 
-    socket.on('newMessage', handleNewMessage);
-    socket.on('typing', handleTyping);
-    socket.on('stopTyping', handleStopTyping);
-    socket.on('messageStatusUpdate', handleStatusUpdate);
-    socket.on('bulkStatusUpdate', handleBulkStatusUpdate);
-    socket.on('messageDeleted', handleMessageDeleted);
-    socket.on('messageDeletedForMe', handleMessageDeletedForMe);
-    socket.on('messageReacted', handleMessageReacted);
+    const attach = (s) => {
+      s.on('newMessage', handleNewMessage);
+      s.on('typing', handleTyping);
+      s.on('stopTyping', handleStopTyping);
+      s.on('messageStatusUpdate', handleStatusUpdate);
+      s.on('bulkStatusUpdate', handleBulkStatusUpdate);
+      s.on('messageDeleted', handleMessageDeleted);
+      s.on('messageDeletedForMe', handleMessageDeletedForMe);
+      s.on('messageReacted', handleMessageReacted);
+    };
+
+    const detach = (s) => {
+      s.off('newMessage', handleNewMessage);
+      s.off('typing', handleTyping);
+      s.off('stopTyping', handleStopTyping);
+      s.off('messageStatusUpdate', handleStatusUpdate);
+      s.off('bulkStatusUpdate', handleBulkStatusUpdate);
+      s.off('messageDeleted', handleMessageDeleted);
+      s.off('messageDeletedForMe', handleMessageDeletedForMe);
+      s.off('messageReacted', handleMessageReacted);
+    };
+
+    // Attach immediately if socket exists, else poll until available
+    let pollInterval = null;
+    let currentSocket = getSocket();
+    if (currentSocket) {
+      attach(currentSocket);
+    } else {
+      pollInterval = setInterval(() => {
+        const s = getSocket();
+        if (s) {
+          clearInterval(pollInterval);
+          pollInterval = null;
+          currentSocket = s;
+          attach(s);
+        }
+      }, 500);
+    }
 
     return () => {
-      socket.off('newMessage', handleNewMessage);
-      socket.off('typing', handleTyping);
-      socket.off('stopTyping', handleStopTyping);
-      socket.off('messageStatusUpdate', handleStatusUpdate);
-      socket.off('bulkStatusUpdate', handleBulkStatusUpdate);
-      socket.off('messageDeleted', handleMessageDeleted);
-      socket.off('messageDeletedForMe', handleMessageDeletedForMe);
-      socket.off('messageReacted', handleMessageReacted);
+      if (pollInterval) clearInterval(pollInterval);
+      const s = getSocket();
+      if (s) detach(s);
     };
   }, [user]);
 
