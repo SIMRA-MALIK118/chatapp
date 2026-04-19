@@ -19,6 +19,10 @@ export const connectSocket = (token) => {
     if (freshToken) socket.auth.token = freshToken;
   });
 
+  socket.on('connect', () => console.log('Socket connected:', socket.id));
+  socket.on('disconnect', (reason) => console.log('Socket disconnected:', reason));
+  socket.on('connect_error', (err) => console.log('Socket error:', err.message));
+
   return socket;
 };
 

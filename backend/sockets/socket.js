@@ -115,12 +115,20 @@ export const initSocket = (io) => {
         const snap = await ref.get();
         if (!snap.exists) return;
         const reactions = snap.data().reactions || {};
-        const users = reactions[emoji] || [];
-        const updated = users.includes(uid)
-          ? users.filter((u) => u !== uid)
-          : [...users, uid];
-        if (updated.length === 0) delete reactions[emoji];
-        else reactions[emoji] = updated;
+
+        // Remove user from any existing emoji first (one reaction per user)
+        Object.keys(reactions).forEach((e) => {
+          reactions[e] = reactions[e].filter((u) => u !== uid);
+          if (reactions[e].length === 0) delete reactions[e];
+        });
+
+        // Toggle: if same emoji clicked again, just remove (already removed above)
+        // If different emoji, add it
+        const alreadyHadThis = (snap.data().reactions?.[emoji] || []).includes(uid);
+        if (!alreadyHadThis) {
+          reactions[emoji] = [...(reactions[emoji] || []), uid];
+        }
+
         await ref.update({ reactions });
         const payload = { messageId, reactions };
         io.to(receiverId).emit('messageReacted', payload);
