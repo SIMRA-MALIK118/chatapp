@@ -28,19 +28,24 @@ export const AuthProvider = ({ children }) => {
           email: freshUser.email,
           photoURL: '',
         });
-        try {
+        const syncWithRetry = async (retries = 3) => {
           const token = await freshUser.getIdToken();
-          // Note: photoURL is stored in Firestore (not Firebase Auth) so we don't pass it here
-          // The backend will return the Firestore document which has the real photoURL
-          const res = await api.post('/api/auth/sync', {
-            displayName: freshUser.displayName,
-            photoURL: freshUser.photoURL || '',
-          });
-          setProfile(res.data);
-          connectSocket(token);
-        } catch (err) {
-          console.warn('Backend sync failed (backend may not be running):', err.message);
-        }
+          for (let i = 0; i < retries; i++) {
+            try {
+              const res = await api.post('/api/auth/sync', {
+                displayName: freshUser.displayName,
+                photoURL: freshUser.photoURL || '',
+              });
+              setProfile(res.data);
+              connectSocket(token);
+              return;
+            } catch (err) {
+              if (i < retries - 1) await new Promise(r => setTimeout(r, 3000));
+              else console.warn('Backend sync failed:', err.message);
+            }
+          }
+        };
+        syncWithRetry();
       } else {
         setUser(null);
         setProfile(null);
