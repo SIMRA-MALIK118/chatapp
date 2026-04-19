@@ -8,8 +8,8 @@ export const connectSocket = (token) => {
 
   socket = io(process.env.NEXT_PUBLIC_SOCKET_URL, {
     auth: { token },
-    transports: ['websocket'],
-    reconnectionAttempts: 5,
+    transports: ['websocket', 'polling'],
+    reconnectionAttempts: 10,
     reconnectionDelay: 1000,
   });
 
