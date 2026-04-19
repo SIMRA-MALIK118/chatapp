@@ -100,6 +100,15 @@ export const ChatProvider = ({ children }) => {
       setMessages((prev) => prev.map((m) =>
         m.id === messageId ? { ...m, deleted: true, text: '', imageUrl: '' } : m
       ));
+      setLastMessages((prev) => {
+        const updated = { ...prev };
+        Object.keys(updated).forEach((uid) => {
+          if (updated[uid]?.id === messageId) {
+            updated[uid] = { ...updated[uid], deleted: true, text: '', imageUrl: '' };
+          }
+        });
+        return updated;
+      });
     };
     const handleMessageDeletedForMe = ({ messageId }) => {
       setMessages((prev) => prev.map((m) =>
@@ -107,6 +116,15 @@ export const ChatProvider = ({ children }) => {
           ? { ...m, deletedFor: [...(m.deletedFor || []), user.uid] }
           : m
       ));
+      setLastMessages((prev) => {
+        const updated = { ...prev };
+        Object.keys(updated).forEach((uid) => {
+          if (updated[uid]?.id === messageId) {
+            updated[uid] = { ...updated[uid], deletedFor: [...(updated[uid].deletedFor || []), user.uid] };
+          }
+        });
+        return updated;
+      });
     };
     const handleMessageReacted = ({ messageId, reactions }) => {
       setMessages((prev) => prev.map((m) => m.id === messageId ? { ...m, reactions } : m));
@@ -198,22 +216,32 @@ export const ChatProvider = ({ children }) => {
   };
 
   // ─── Delete for Everyone ─────────────────────────────────────────────────────
+  const updateLastIfMatch = (messageId, patch) => {
+    setLastMessages((prev) => {
+      const updated = { ...prev };
+      Object.keys(updated).forEach((uid) => {
+        if (updated[uid]?.id === messageId) updated[uid] = { ...updated[uid], ...patch };
+      });
+      return updated;
+    });
+  };
+
   const deleteForEveryone = (messageId) => {
     const socket = getSocket();
-    setMessages((prev) => prev.map((m) =>
-      m.id === messageId ? { ...m, deleted: true, text: '', imageUrl: '' } : m
-    ));
+    const patch = { deleted: true, text: '', imageUrl: '' };
+    setMessages((prev) => prev.map((m) => m.id === messageId ? { ...m, ...patch } : m));
+    updateLastIfMatch(messageId, patch);
     socket?.emit('deleteForEveryone', { messageId, receiverId: selectedUser?.uid });
   };
 
   // ─── Delete for Me ───────────────────────────────────────────────────────────
   const deleteForMe = (messageId) => {
     const socket = getSocket();
+    const patch = { deletedFor: [...(messages.find(m => m.id === messageId)?.deletedFor || []), user.uid] };
     setMessages((prev) => prev.map((m) =>
-      m.id === messageId
-        ? { ...m, deletedFor: [...(m.deletedFor || []), user.uid] }
-        : m
+      m.id === messageId ? { ...m, ...patch } : m
     ));
+    updateLastIfMatch(messageId, patch);
     socket?.emit('deleteForMe', { messageId });
   };
 
