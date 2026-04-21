@@ -187,17 +187,18 @@ export const ChatProvider = ({ children }) => {
   }, [user]);
 
   // ─── Send text message ──────────────────────────────────────────────────────
-  const sendMessage = async (text) => {
-    if (!selectedUser) return;
+  const sendMessage = async (text, toUser) => {
+    const target = toUser || selectedUser;
+    if (!target) return;
     const socket = getSocket();
-    const body = { receiverId: selectedUser.uid, text };
-    if (replyTo) body.replyTo = replyTo;
+    const body = { receiverId: target.uid, text };
+    if (!toUser && replyTo) body.replyTo = replyTo;
     const res = await api.post('/api/messages', body);
     const savedMsg = res.data;
-    setMessages((prev) => [...prev, savedMsg]);
-    setLastMessages((prev) => ({ ...prev, [selectedUser.uid]: savedMsg }));
+    if (!toUser) setMessages((prev) => [...prev, savedMsg]);
+    setLastMessages((prev) => ({ ...prev, [target.uid]: savedMsg }));
     socket?.emit('sendMessage', savedMsg);
-    setReplyTo(null);
+    if (!toUser) setReplyTo(null);
   };
 
   // ─── Send voice message ─────────────────────────────────────────────────────
@@ -212,17 +213,18 @@ export const ChatProvider = ({ children }) => {
   };
 
   // ─── Send image message ─────────────────────────────────────────────────────
-  const sendImageMessage = async (imageUrl) => {
-    if (!selectedUser) return;
+  const sendImageMessage = async (imageUrl, toUser) => {
+    const target = toUser || selectedUser;
+    if (!target) return;
     const socket = getSocket();
-    const body = { receiverId: selectedUser.uid, text: '', imageUrl };
-    if (replyTo) body.replyTo = replyTo;
+    const body = { receiverId: target.uid, text: '', imageUrl };
+    if (!toUser && replyTo) body.replyTo = replyTo;
     const res = await api.post('/api/messages', body);
     const savedMsg = res.data;
-    setMessages((prev) => [...prev, savedMsg]);
-    setLastMessages((prev) => ({ ...prev, [selectedUser.uid]: savedMsg }));
+    if (!toUser) setMessages((prev) => [...prev, savedMsg]);
+    setLastMessages((prev) => ({ ...prev, [target.uid]: savedMsg }));
     socket?.emit('sendMessage', savedMsg);
-    setReplyTo(null);
+    if (!toUser) setReplyTo(null);
   };
 
   // ─── Delete for Everyone ─────────────────────────────────────────────────────
