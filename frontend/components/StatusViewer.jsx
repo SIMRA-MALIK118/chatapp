@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
-import { X, ChevronLeft, ChevronRight, Trash2, Eye } from 'lucide-react';
+import { X, Trash2, Eye, ChevronDown } from 'lucide-react';
 import api from '@/services/api';
 import { useAuth } from '@/context/AuthContext';
 
@@ -14,11 +14,63 @@ function timeAgo(ms) {
   return `${Math.floor(h / 24)}d ago`;
 }
 
+function ViewersSheet({ viewedBy, onClose }) {
+  const [viewers, setViewers] = useState([]);
+
+  useEffect(() => {
+    if (!viewedBy?.length) return;
+    Promise.all(
+      viewedBy.map((uid) =>
+        api.get(`/api/users/${uid}`).then((r) => r.data).catch(() => null)
+      )
+    ).then((results) => setViewers(results.filter(Boolean)));
+  }, []);
+
+  return (
+    <div className="absolute bottom-0 left-0 right-0 z-30 bg-black/80 backdrop-blur-md rounded-t-2xl"
+      onClick={(e) => e.stopPropagation()}>
+      <div className="flex items-center justify-between px-4 pt-3 pb-2 border-b border-white/10">
+        <div className="flex items-center gap-2 text-white text-sm font-semibold">
+          <Eye className="w-4 h-4 text-purple-400" />
+          {viewedBy.length} {viewedBy.length === 1 ? 'View' : 'Views'}
+        </div>
+        <button onClick={onClose} className="text-white/60 hover:text-white transition">
+          <ChevronDown className="w-5 h-5" />
+        </button>
+      </div>
+
+      <div className="max-h-56 overflow-y-auto py-2">
+        {viewedBy.length === 0 ? (
+          <p className="text-center text-white/40 text-sm py-6">No views yet</p>
+        ) : viewers.length === 0 ? (
+          <p className="text-center text-white/40 text-sm py-6">Loading...</p>
+        ) : (
+          viewers.map((v) => (
+            <div key={v.uid} className="flex items-center gap-3 px-4 py-2.5">
+              <div className="w-9 h-9 rounded-full bg-purple-700 flex items-center justify-center
+                text-white font-bold text-sm flex-shrink-0 overflow-hidden">
+                {v.photoURL
+                  ? <img src={v.photoURL} alt={v.name} className="w-full h-full object-cover" />
+                  : v.name?.[0]?.toUpperCase()}
+              </div>
+              <div>
+                <p className="text-white text-sm font-medium">{v.name}</p>
+                <p className="text-white/40 text-xs">{v.email}</p>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function StatusViewer({ groups, startIndex = 0, onClose, onDeleted }) {
   const { user } = useAuth();
   const [groupIdx, setGroupIdx] = useState(startIndex);
   const [statusIdx, setStatusIdx] = useState(0);
   const [progress, setProgress] = useState(0);
+  const [showViewers, setShowViewers] = useState(false);
   const timerRef = useRef(null);
   const DURATION = 5000;
 
@@ -26,8 +78,12 @@ export default function StatusViewer({ groups, startIndex = 0, onClose, onDelete
   const status = group?.statuses?.[statusIdx];
   const isOwn = group?.uid === user?.uid;
 
-  // Auto-advance progress bar
+  // Pause timer when viewers sheet is open
   useEffect(() => {
+    if (showViewers) {
+      clearInterval(timerRef.current);
+      return;
+    }
     setProgress(0);
     clearInterval(timerRef.current);
     const start = Date.now();
@@ -38,7 +94,7 @@ export default function StatusViewer({ groups, startIndex = 0, onClose, onDelete
       if (elapsed >= DURATION) advance();
     }, 50);
     return () => clearInterval(timerRef.current);
-  }, [groupIdx, statusIdx]);
+  }, [groupIdx, statusIdx, showViewers]);
 
   // Mark viewed
   useEffect(() => {
@@ -50,6 +106,7 @@ export default function StatusViewer({ groups, startIndex = 0, onClose, onDelete
 
   const advance = () => {
     clearInterval(timerRef.current);
+    setShowViewers(false);
     const statuses = groups[groupIdx]?.statuses || [];
     if (statusIdx < statuses.length - 1) {
       setStatusIdx((i) => i + 1);
@@ -63,6 +120,7 @@ export default function StatusViewer({ groups, startIndex = 0, onClose, onDelete
 
   const goBack = () => {
     clearInterval(timerRef.current);
+    setShowViewers(false);
     if (statusIdx > 0) {
       setStatusIdx((i) => i - 1);
     } else if (groupIdx > 0) {
@@ -102,7 +160,8 @@ export default function StatusViewer({ groups, startIndex = 0, onClose, onDelete
 
         {/* Header */}
         <div className="absolute top-5 left-0 right-0 z-20 flex items-center gap-3 px-3">
-          <div className="w-9 h-9 rounded-full overflow-hidden border-2 border-white/40 flex-shrink-0 bg-purple-700 flex items-center justify-center text-white font-bold text-sm">
+          <div className="w-9 h-9 rounded-full overflow-hidden border-2 border-white/40 flex-shrink-0
+            bg-purple-700 flex items-center justify-center text-white font-bold text-sm">
             {group.photoURL
               ? <img src={group.photoURL} alt={group.name} className="w-full h-full object-cover" />
               : group.name?.[0]?.toUpperCase()}
@@ -133,19 +192,39 @@ export default function StatusViewer({ groups, startIndex = 0, onClose, onDelete
           )}
         </div>
 
-        {/* Viewers count (own only) */}
-        {isOwn && (
-          <div className="absolute bottom-4 left-0 right-0 z-20 flex justify-center">
-            <div className="flex items-center gap-1.5 bg-black/50 backdrop-blur px-3 py-1.5 rounded-full text-white/80 text-xs">
-              <Eye className="w-3.5 h-3.5" />
-              {status.viewedBy?.length || 0} views
+        {/* Viewers button — own status only */}
+        {isOwn && !showViewers && (
+          <button
+            onClick={() => setShowViewers(true)}
+            className="absolute bottom-5 left-0 right-0 z-20 flex justify-center">
+            <div className="flex items-center gap-2 bg-black/60 backdrop-blur px-4 py-2 rounded-full
+              text-white/80 text-sm hover:bg-black/80 transition">
+              <Eye className="w-4 h-4 text-purple-400" />
+              <span>{status.viewedBy?.length || 0} {status.viewedBy?.length === 1 ? 'view' : 'views'}</span>
+              {status.viewedBy?.length > 0 && (
+                <div className="flex -space-x-1.5 ml-1">
+                  {/* mini avatars placeholder */}
+                </div>
+              )}
             </div>
-          </div>
+          </button>
         )}
 
-        {/* Tap zones */}
-        <button className="absolute left-0 top-0 w-1/3 h-full z-10" onClick={goBack} />
-        <button className="absolute right-0 top-0 w-1/3 h-full z-10" onClick={advance} />
+        {/* Viewers sheet */}
+        {isOwn && showViewers && (
+          <ViewersSheet
+            viewedBy={status.viewedBy || []}
+            onClose={() => setShowViewers(false)}
+          />
+        )}
+
+        {/* Tap zones — only when viewers sheet is closed */}
+        {!showViewers && (
+          <>
+            <button className="absolute left-0 top-0 w-1/3 h-full z-10" onClick={goBack} />
+            <button className="absolute right-0 top-0 w-1/3 h-full z-10" onClick={advance} />
+          </>
+        )}
       </div>
     </div>
   );
