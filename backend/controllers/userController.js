@@ -33,12 +33,13 @@ export const getUserProfile = async (req, res) => {
 
 // PATCH /api/users/me — update own profile (name or photo)
 export const updateMyProfile = async (req, res) => {
-  const { displayName, photoURL } = req.body;
+  const { displayName, photoURL, bio } = req.body;
   const uid = req.user.uid;
   const updates = {};
 
   if (displayName?.trim()) updates.name = displayName.trim();
   if (photoURL !== undefined) updates.photoURL = photoURL;
+  if (bio !== undefined) updates.bio = bio;
 
   if (Object.keys(updates).length === 0)
     return res.status(400).json({ error: 'Nothing to update' });

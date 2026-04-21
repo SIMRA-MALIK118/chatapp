@@ -90,7 +90,7 @@ export default function SignupPage() {
       //    but backend now protects photoURL from being overwritten)
       await updateProfile(cred.user, { displayName: form.name });
 
-      router.push('/home');
+      router.push('/setup-profile');
     } catch (err) {
       const msgs = {
         'auth/email-already-in-use': 'An account with this email already exists.',
