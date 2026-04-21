@@ -5,6 +5,7 @@ import { useAuth } from '@/context/AuthContext';
 import { Search, Users, Plus, X, UserPlus, Check, MessageCircle } from 'lucide-react';
 import { format, isToday, isYesterday } from 'date-fns';
 import api from '@/services/api';
+import StatusBar from './StatusBar';
 
 const formatLastTime = (createdAt) => {
   if (!createdAt) return '';
@@ -247,6 +248,9 @@ export default function Sidebar() {
             />
           </div>
         </div>
+
+        {/* Status bar */}
+        <StatusBar />
 
         {/* List */}
         <div className="flex-1 overflow-y-auto py-1">

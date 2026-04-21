@@ -9,6 +9,8 @@ import 'express-async-errors';
 import authRoutes from './routes/authRoutes.js';
 import messageRoutes from './routes/messageRoutes.js';
 import uploadRoutes from './routes/uploadRoutes.js';
+import userRoutes from './routes/userRoutes.js';
+import statusRoutes from './routes/statusRoutes.js';
 import { initSocket } from './sockets/socket.js';
 
 const app = express();
@@ -34,6 +36,8 @@ app.use(morgan('dev'));
 app.use('/api/auth', authRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/upload', uploadRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/status', statusRoutes);
 
 app.get('/health', (_req, res) => res.json({ status: 'ok' }));
 
