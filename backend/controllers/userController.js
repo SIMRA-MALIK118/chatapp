@@ -73,3 +73,48 @@ export const unblockUser = async (req, res) => {
   });
   res.json({ success: true, unblocked: targetUid });
 };
+
+// GET /api/users/contacts — get current user's contacts with full profiles
+export const getContacts = async (req, res) => {
+  const uid = req.user.uid;
+  const snap = await db.collection('users').doc(uid).get();
+  if (!snap.exists) return res.json([]);
+
+  const contactUids = snap.data().contacts || [];
+  if (contactUids.length === 0) return res.json([]);
+
+  const results = await Promise.all(
+    contactUids.map(async (cuid) => {
+      const s = await db.collection('users').doc(cuid).get();
+      if (!s.exists) return null;
+      const { uid: id, name, email, photoURL, online, lastSeen } = s.data();
+      return { uid: id, name, email, photoURL, online, lastSeen };
+    })
+  );
+  res.json(results.filter(Boolean));
+};
+
+// POST /api/users/:uid/contact — add a user to contacts
+export const addContact = async (req, res) => {
+  const { uid: targetUid } = req.params;
+  const uid = req.user.uid;
+  if (targetUid === uid) return res.status(400).json({ error: 'Cannot add yourself' });
+
+  const { FieldValue } = await import('firebase-admin/firestore');
+  await db.collection('users').doc(uid).update({
+    contacts: FieldValue.arrayUnion(targetUid),
+  });
+  res.json({ success: true, added: targetUid });
+};
+
+// DELETE /api/users/:uid/contact — remove a user from contacts
+export const removeContact = async (req, res) => {
+  const { uid: targetUid } = req.params;
+  const uid = req.user.uid;
+
+  const { FieldValue } = await import('firebase-admin/firestore');
+  await db.collection('users').doc(uid).update({
+    contacts: FieldValue.arrayRemove(targetUid),
+  });
+  res.json({ success: true, removed: targetUid });
+};

@@ -21,9 +21,9 @@ export const ChatProvider = ({ children }) => {
 
   useEffect(() => { selectedUserRef.current = selectedUser; }, [selectedUser]);
 
-  // ─── Fetch users ────────────────────────────────────────────────────────────
-  const fetchUsers = () => {
-    api.get('/api/auth/users').then((r) => setUsers(r.data)).catch(console.error);
+  // ─── Fetch contacts ──────────────────────────────────────────────────────────
+  const fetchContacts = () => {
+    api.get('/api/users/contacts').then((r) => setUsers(r.data)).catch(console.error);
   };
   const fetchLastConversations = () => {
     api.get('/api/messages/last-conversations')
@@ -32,12 +32,22 @@ export const ChatProvider = ({ children }) => {
   };
   useEffect(() => {
     if (!user) return;
-    fetchUsers();
+    fetchContacts();
     fetchLastConversations();
-    const t1 = setTimeout(fetchUsers, 2000);
-    const t2 = setTimeout(fetchUsers, 6000);
+    const t1 = setTimeout(fetchContacts, 2000);
+    const t2 = setTimeout(fetchContacts, 6000);
     return () => { clearTimeout(t1); clearTimeout(t2); };
   }, [user]);
+
+  const addContact = async (targetUid) => {
+    await api.post(`/api/users/${targetUid}/contact`);
+    fetchContacts();
+  };
+
+  const removeContact = async (targetUid) => {
+    await api.delete(`/api/users/${targetUid}/contact`);
+    fetchContacts();
+  };
 
   // ─── Load messages + bulk seen ──────────────────────────────────────────────
   useEffect(() => {
@@ -289,6 +299,7 @@ export const ChatProvider = ({ children }) => {
       sendMessage, sendImageMessage, sendVoiceMessage,
       deleteForEveryone, deleteForMe,
       forwardMessage, reactToMessage, emitTyping,
+      addContact, removeContact,
     }}>
       {children}
     </ChatContext.Provider>
