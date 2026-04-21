@@ -236,8 +236,33 @@ export default function Message({ message, senderChanged }) {
   const handleCopy = () => { if (message.text) navigator.clipboard.writeText(message.text).catch(() => {}); };
   const handleForward = () => setForwardMsg({ text: message.text, imageUrl: message.imageUrl });
 
-  const handleTouchStart = () => { longPressRef.current = setTimeout(openDrop, 500); };
-  const handleTouchEnd = () => clearTimeout(longPressRef.current);
+  const [swipeX, setSwipeX] = useState(0);
+  const touchStartX = useRef(null);
+  const swiping = useRef(false);
+
+  const handleTouchStart = (e) => {
+    touchStartX.current = e.touches[0].clientX;
+    swiping.current = false;
+    longPressRef.current = setTimeout(openDrop, 500);
+  };
+
+  const handleTouchMove = (e) => {
+    if (touchStartX.current === null) return;
+    const dx = e.touches[0].clientX - touchStartX.current;
+    if (Math.abs(dx) > 10) {
+      clearTimeout(longPressRef.current);
+      swiping.current = true;
+    }
+    if (dx > 0 && dx < 80) setSwipeX(dx);
+  };
+
+  const handleTouchEnd = () => {
+    clearTimeout(longPressRef.current);
+    if (swiping.current && swipeX > 50) handleReply();
+    setSwipeX(0);
+    touchStartX.current = null;
+    swiping.current = false;
+  };
 
   return (
     <>
@@ -246,10 +271,16 @@ export default function Message({ message, senderChanged }) {
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => { setHovered(false); setShowEmojiPicker(false); }}
         onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
-        onTouchMove={handleTouchEnd}
       >
-        <div className="max-w-[85%] sm:max-w-[70%] relative" ref={bubbleRef}>
+        <div className="max-w-[85%] sm:max-w-[70%] relative" ref={bubbleRef}
+          style={{ transform: `translateX(${swipeX}px)`, transition: swipeX === 0 ? 'transform 0.2s ease' : 'none' }}>
+          {swipeX > 20 && (
+            <div className={`absolute top-1/2 -translate-y-1/2 -left-8 text-purple-400`}>
+              <Reply className="w-5 h-5" />
+            </div>
+          )}
 
           {/* Hover toolbar — emoji bar above bubble */}
           {hovered && (
