@@ -94,7 +94,7 @@ export default function ChatWindow() {
           <div className="w-20 h-20 rounded-2xl bg-purple-600 flex items-center justify-center mb-5 shadow-xl shadow-purple-900/50">
             <MessageCircle className="w-10 h-10 text-white" />
           </div>
-          <h2 className="text-2xl font-bold text-white mb-1">ChatApp</h2>
+          <h2 className="text-2xl font-bold text-white mb-1">Connectify</h2>
           <p className="text-purple-400 text-sm font-medium mb-6">Fast · Secure · Real-time</p>
 
           <div className="grid grid-cols-2 gap-2.5 w-full mb-6">

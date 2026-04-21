@@ -2,7 +2,7 @@ import './globals.css';
 import { AuthProvider } from '@/context/AuthContext';
 
 export const metadata = {
-  title: 'ChatApp',
+  title: 'Connectify',
   description: 'Real-time chat application',
 };
 

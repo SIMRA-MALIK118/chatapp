@@ -37,7 +37,7 @@ export default function Navbar() {
         <div className="bg-purple-600 p-1.5 rounded-lg shadow-md shadow-purple-900/50">
           <MessageCircle className="w-5 h-5 text-white" />
         </div>
-        <span className="font-bold text-lg text-white tracking-tight">ChatApp</span>
+        <span className="font-bold text-lg text-white tracking-tight">Connectify</span>
       </div>
 
       {/* User menu */}
