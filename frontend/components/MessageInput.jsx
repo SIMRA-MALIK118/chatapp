@@ -51,6 +51,8 @@ export default function MessageInput() {
 
   const handleSend = async () => {
     if (!text.trim() && !imageBase64) return;
+    // Refocus immediately so keyboard stays open on mobile
+    textareaRef.current?.focus();
     setSending(true);
     setShowEmoji(false);
     try {
@@ -263,13 +265,19 @@ export default function MessageInput() {
 
         {/* Mic / Send — circular purple button */}
         {canSend ? (
-          <button onClick={handleSend} disabled={!canSend}
+          <button
+            onMouseDown={(e) => e.preventDefault()}
+            onTouchStart={(e) => { e.preventDefault(); handleSend(); }}
+            onClick={handleSend}
+            disabled={!canSend}
             className="w-11 h-11 bg-purple-600 hover:bg-purple-700 text-white rounded-full
               flex items-center justify-center flex-shrink-0 transition shadow-lg shadow-purple-900/40">
             {sending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-4 h-4" />}
           </button>
         ) : (
-          <button onClick={startRecording}
+          <button
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={startRecording}
             className="w-11 h-11 bg-purple-600 hover:bg-purple-700 text-white rounded-full
               flex items-center justify-center flex-shrink-0 transition shadow-lg shadow-purple-900/40">
             <Mic className="w-5 h-5" />
